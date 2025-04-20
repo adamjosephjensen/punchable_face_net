@@ -109,6 +109,11 @@ def index():
     labeled_count = len(labeled_images)
     progress_text = f"{labeled_count} / {total_images} images labeled."
 
+    # Calculate percentage for the progress bar
+    progress_percent = 0
+    if total_images > 0:
+        progress_percent = round((labeled_count / total_images) * 100)
+
     image_path = None
     if next_image:
         # Construct URL path relative to static folder if using Flask's static serving
@@ -119,7 +124,8 @@ def index():
     return render_template('labeler.html',
                            image_file=next_image,
                            image_path=image_path,
-                           progress_text=progress_text)
+                           progress_text=progress_text,
+                           progress_percent=progress_percent) # Add progress_percent here
 
 
 # --- Template ---

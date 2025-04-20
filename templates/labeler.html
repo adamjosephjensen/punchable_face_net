@@ -11,6 +11,31 @@
         img { max-width: 100%; height: auto; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; }
         .controls button { padding: 10px 20px; margin: 5px; font-size: 16px; cursor: pointer; }
         .progress { margin-top: 20px; font-size: 14px; color: grey; }
+
+        /* --- Add these styles --- */
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 5px; /* Space between text and bar */
+            margin-bottom: 15px; /* Space below the bar */
+            overflow: hidden; /* Ensure inner bar respects border radius */
+            height: 20px; /* Define height for container */
+        }
+        .progress-bar-fill {
+            height: 100%; /* Fill container height */
+            background-color: #4CAF50; /* Green */
+            width: 0%; /* Default width, will be set by style attribute */
+            text-align: center; /* Center percentage text */
+            line-height: 20px; /* Vertically center text (match container height) */
+            color: white;
+            font-size: 12px;
+            border-radius: 4px; /* Match container */
+            transition: width 0.3s ease-in-out; /* Smooth transition */
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        /* --- End of added styles --- */
+
         .flash { padding: 10px; margin-bottom: 15px; border-radius: 4px; }
         .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .flash.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
@@ -46,6 +71,15 @@
         {% endwith %}
 
         <p class="progress">{{ progress_text }}</p>
+
+        <!-- --- Add this div structure --- -->
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: {{ progress_percent }}%;">
+                {{ progress_percent }}%
+            </div>
+        </div>
+        <!-- --- End of added div structure --- -->
+
 
         {% if image_file %}
             <img src="{{ image_path }}" alt="Image to label" id="labeling-image">
