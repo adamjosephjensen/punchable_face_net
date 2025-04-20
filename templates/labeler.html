@@ -1,0 +1,101 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Image Labeler</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; text-align: center; }
+        img { max-width: 100%; height: auto; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; }
+        .controls button { padding: 10px 20px; margin: 5px; font-size: 16px; cursor: pointer; }
+        .progress { margin-top: 20px; font-size: 14px; color: grey; }
+        .flash { padding: 10px; margin-bottom: 15px; border-radius: 4px; }
+        .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        /* Key hints */
+        .key-hints { margin-top: 15px; font-size: 0.9em; color: #555; }
+        .key-hints kbd {
+            display: inline-block;
+            padding: 3px 5px;
+            font: 11px SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace;
+            line-height: 10px;
+            color: #444d56;
+            vertical-align: middle;
+            background-color: #fcfcfc;
+            border: solid 1px #c6cbd1;
+            border-bottom-color: #959da5;
+            border-radius: 3px;
+            box-shadow: inset 0 -1px 0 #959da5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Label the Face</h1>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <p class="progress">{{ progress_text }}</p>
+
+        {% if image_file %}
+            <img src="{{ image_path }}" alt="Image to label" id="labeling-image">
+            <form method="post" action="{{ url_for('index') }}" id="label-form">
+                <input type="hidden" name="filename" value="{{ image_file }}">
+                <input type="hidden" name="label" id="label-input">
+                <div class="controls">
+                    <button type="button" onclick="submitLabel('annoying')">Annoying (H)</button>
+                    <button type="button" onclick="submitLabel('not_annoying')">Not Annoying (L)</button>
+                    <button type="button" onclick="submitLabel('skip')">Skip (S)</button>
+                </div>
+                 <div class="key-hints">
+                    Use keyboard shortcuts: <kbd>H</kbd> for Annoying, <kbd>L</kbd> for Not Annoying, <kbd>S</kbd> for Skip
+                </div>
+            </form>
+        {% else %}
+            <p>No more images to label, or no images found!</p>
+        {% endif %}
+    </div>
+
+    <script>
+        function submitLabel(labelValue) {
+            document.getElementById('label-input').value = labelValue;
+            document.getElementById('label-form').submit();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            // Ensure we don't trigger shortcuts if user is typing in an input field (none here, but good practice)
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            // Check if the image and form exist
+            if (!document.getElementById('labeling-image')) {
+                return; // No image currently displayed
+            }
+
+            switch(event.key.toUpperCase()) {
+                case 'H':
+                    submitLabel('annoying');
+                    break;
+                case 'L':
+                    submitLabel('not_annoying');
+                    break;
+                case 'S':
+                    submitLabel('skip');
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
