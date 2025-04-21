@@ -10,8 +10,12 @@ IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
 BATCH_SIZE = 10 # How many images to label before showing progress
 
 # --- Flask App Setup ---
-# Point Flask to the templates directory at the project root
-app = Flask(__name__, template_folder=os.path.abspath('../templates'))
+# Calculate paths relative to the script's location
+script_dir = os.path.dirname(os.path.abspath(__file__))
+template_dir = os.path.abspath(os.path.join(script_dir, '..', 'templates'))
+static_dir = os.path.abspath(os.path.join(script_dir, '..', 'data'))
+
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = 'super secret key' # Change this for production use
 
 # --- Helper Functions ---
@@ -134,10 +138,8 @@ def index():
 # --- Static File Serving Setup ---
 # For serving images, Flask needs a 'static' folder next to the app script,
 # or configure a different static folder.
-# Let's assume images are in ../data/images relative to this script.
-# We need to tell Flask where to find them.
-app.static_folder = os.path.abspath('../data')
-app.static_url_path = '/static' # URL path to access static files
+# Static URL path remains the same
+app.static_url_path = '/static'
 
 
 if __name__ == '__main__':
