@@ -4,8 +4,8 @@ import random
 from flask import Flask, render_template, request, redirect, url_for, flash
 
 # --- Configuration ---
-IMAGE_DIR = os.path.abspath('../data/images') # Adjust if your structure differs
-LABELS_FILE = os.path.abspath('../data/labels.csv')
+IMAGE_DIR = os.path.abspath('./data/images') # Adjust if your structure differs
+LABELS_FILE = os.path.abspath('./data/labels.csv')
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
 BATCH_SIZE = 10 # How many images to label before showing progress
 
@@ -100,7 +100,7 @@ def index():
     all_images = get_all_images()
     if not all_images:
          flash(f"No images found in {IMAGE_DIR}. Please add images.", "warning")
-         return render_template('labeler.html', image_file=None, progress_text="No images found.")
+         return render_template('templates/labeler.html', image_file=None, progress_text="No images found.")
 
     labeled_images = get_labeled_images()
     next_image = get_next_image_to_label(all_images, labeled_images)
@@ -121,7 +121,7 @@ def index():
         # A better approach might be a dedicated /image/<filename> route
         image_path = url_for('static', filename=f'images/{next_image}') # Assumes images are in static/images
 
-    return render_template('labeler.html',
+    return render_template('templates/labeler.html',
                            image_file=next_image,
                            image_path=image_path,
                            progress_text=progress_text,
