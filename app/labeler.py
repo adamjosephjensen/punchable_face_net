@@ -10,7 +10,8 @@ IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
 BATCH_SIZE = 10 # How many images to label before showing progress
 
 # --- Flask App Setup ---
-app = Flask(__name__)
+# Point Flask to the templates directory at the project root
+app = Flask(__name__, template_folder=os.path.abspath('../templates'))
 app.secret_key = 'super secret key' # Change this for production use
 
 # --- Helper Functions ---
@@ -100,7 +101,8 @@ def index():
     all_images = get_all_images()
     if not all_images:
          flash(f"No images found in {IMAGE_DIR}. Please add images.", "warning")
-         return render_template('templates/labeler.html', image_file=None, progress_text="No images found.")
+         # Use just the filename, Flask searches in the configured template_folder
+         return render_template('labeler.html', image_file=None, progress_text="No images found.")
 
     labeled_images = get_labeled_images()
     next_image = get_next_image_to_label(all_images, labeled_images)
@@ -121,7 +123,8 @@ def index():
         # A better approach might be a dedicated /image/<filename> route
         image_path = url_for('static', filename=f'images/{next_image}') # Assumes images are in static/images
 
-    return render_template('templates/labeler.html',
+    # Use just the filename, Flask searches in the configured template_folder
+    return render_template('labeler.html',
                            image_file=next_image,
                            image_path=image_path,
                            progress_text=progress_text,
