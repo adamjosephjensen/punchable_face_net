@@ -1,12 +1,15 @@
 import os
 import csv
 import random
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 
 # --- Configuration ---
-IMAGE_DIR = os.path.abspath('./data/images') # Adjust if your structure differs
+# IMAGE_DIR = os.path.abspath('./data/images') # No longer copying images locally
+# !! IMPORTANT: Verify this path is correct for your system !!
+CELEBA_IMAGE_DIR = '/Users/adamjensen/Documents/celebA/CelebA/Img/img_align_celeba'
+TRAINING_LIST_FILE = os.path.abspath('./data/training_imgs.txt')
 LABELS_FILE = os.path.abspath('./data/labels.csv')
-IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
+# IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'} # No longer needed when reading from list
 BATCH_SIZE = 10 # How many images to label before showing progress
 
 # --- Flask App Setup ---
@@ -20,14 +23,18 @@ app.secret_key = 'super secret key' # Change this for production use
 
 # --- Helper Functions ---
 def get_all_images():
-    """Gets a list of all image filenames in the IMAGE_DIR."""
+    """Gets a list of image filenames from the training list file."""
     images = []
-    if not os.path.exists(IMAGE_DIR):
-        print(f"Error: Image directory not found at {IMAGE_DIR}")
+    if not os.path.exists(TRAINING_LIST_FILE):
+        print(f"Error: Training list file not found at {TRAINING_LIST_FILE}")
+        print("Please run the generate_training_list.py script first.")
+        # Return empty list, Flask route will show an appropriate message
         return images
-    for fname in os.listdir(IMAGE_DIR):
-        if os.path.splitext(fname)[1].lower() in IMAGE_EXTENSIONS:
-            images.append(fname)
+    try:
+        with open(TRAINING_LIST_FILE, 'r') as f:
+            images = [line.strip() for line in f if line.strip()]
+    except IOError as e:
+        print(f"Error reading training list file {TRAINING_LIST_FILE}: {e}")
     return images
 
 def get_labeled_images():
@@ -124,11 +131,10 @@ def index():
         progress_percent = round((labeled_count / total_images) * 100)
 
     image_path = None
+    image_path = None
     if next_image:
-        # Construct URL path relative to static folder if using Flask's static serving
-        # For simplicity here, assuming direct access or a route to serve images
-        # A better approach might be a dedicated /image/<filename> route
-        image_path = url_for('static', filename=f'images/{next_image}') # Assumes images are in static/images
+        # Use the new route to serve images directly from CelebA dir
+        image_path = url_for('serve_celeba_image', filename=next_image)
 
     # Add a flag to indicate completion status
     is_done = next_image is None and total_images > 0 # True if no next image AND there were images
@@ -140,6 +146,34 @@ def index():
                            progress_text=progress_text,
                            progress_percent=progress_percent,
                            is_done=is_done) # Pass the completion flag
+
+
+@app.route('/images/<filename>')
+def serve_celeba_image(filename):
+    """Serves images directly from the CelebA image directory."""
+    # Basic security check: Ensure filename doesn't try to escape the directory
+    if '..' in filename or filename.startswith('/'):
+         from flask import abort
+         abort(404) # Or 400 Bad Request
+
+    # Check if the requested file exists in the training list for added safety
+    # (Optional but recommended if training_imgs.txt is the definitive source)
+    # all_training_images = get_all_images() # Consider caching this if performance is an issue
+    # if filename not in all_training_images:
+    #     from flask import abort
+    #     abort(404)
+
+    print(f"Serving image: {filename} from {CELEBA_IMAGE_DIR}") # Add logging
+    try:
+        return send_from_directory(CELEBA_IMAGE_DIR, filename)
+    except FileNotFoundError:
+         from flask import abort
+         print(f"Error: Image file not found at {os.path.join(CELEBA_IMAGE_DIR, filename)}")
+         abort(404)
+    except Exception as e:
+         from flask import abort
+         print(f"Error serving file {filename}: {e}")
+         abort(500) # Internal Server Error for other issues
 
 
 # --- Static File Serving Setup ---
