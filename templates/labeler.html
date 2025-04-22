@@ -47,7 +47,14 @@
 
         <p class="progress">{{ progress_text }}</p>
 
-        {% if image_file %}
+        {# Check if labeling is complete #}
+        {% if is_done %}
+            <h2>All Done!</h2>
+            <p>You have labeled all available images.</p>
+            <p>You can close this window now.</p>
+
+        {# Check if there are images to label #}
+        {% elif image_file %}
             <img src="{{ image_path }}" alt="Image to label" id="labeling-image">
             <form method="post" action="{{ url_for('index') }}" id="label-form">
                 <input type="hidden" name="filename" value="{{ image_file }}">
@@ -61,27 +68,35 @@
                     Use keyboard shortcuts: <kbd>H</kbd> for Annoying, <kbd>L</kbd> for Not Annoying, <kbd>S</kbd> for Skip
                 </div>
             </form>
+
+        {# Handle the case where no images were found initially #}
         {% else %}
-            <p>No more images to label, or no images found!</p>
+            <p>No images found in the directory, or an error occurred.</p>
+            <p>Please check the image directory and restart the application.</p>
         {% endif %}
+
     </div>
 
     <script>
         function submitLabel(labelValue) {
-            document.getElementById('label-input').value = labelValue;
-            document.getElementById('label-form').submit();
+            // Only proceed if the form exists (i.e., not in 'done' state)
+            const form = document.getElementById('label-form');
+            if (form) {
+                document.getElementById('label-input').value = labelValue;
+                form.submit();
+            }
         }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(event) {
-            // Ensure we don't trigger shortcuts if user is typing in an input field (none here, but good practice)
+            // Ensure we don't trigger shortcuts if user is typing in an input field
             if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
                 return;
             }
 
-            // Check if the image and form exist
-            if (!document.getElementById('labeling-image')) {
-                return; // No image currently displayed
+            // Check if the image and form exist (i.e., not in 'done' state)
+            if (!document.getElementById('labeling-image') || !document.getElementById('label-form')) {
+                return;
             }
 
             switch(event.key.toUpperCase()) {

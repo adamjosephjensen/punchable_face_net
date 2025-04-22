@@ -113,7 +113,10 @@ def index():
 
     total_images = len(all_images)
     labeled_count = len(labeled_images)
+    # Update progress text even when done
     progress_text = f"{labeled_count} / {total_images} images labeled."
+    if next_image is None and total_images > 0: # Check if done and there were images initially
+        progress_text += " - All images labeled!"
 
     # Calculate percentage for the progress bar
     progress_percent = 0
@@ -127,9 +130,12 @@ def index():
         # A better approach might be a dedicated /image/<filename> route
         image_path = url_for('static', filename=f'images/{next_image}') # Assumes images are in static/images
 
-    # Use just the filename, Flask searches in the configured template_folder
-    return render_template('labeler.html',
-                           image_file=next_image,
+   # Add a flag to indicate completion status
+   is_done = next_image is None and total_images > 0 # True if no next image AND there were images
+
+   # Use just the filename, Flask searches in the configured template_folder
+   return render_template('labeler.html',
+                          image_file=next_image,
                            image_path=image_path,
                            progress_text=progress_text,
                            progress_percent=progress_percent) # Add progress_percent here
