@@ -138,7 +138,8 @@ def index():
                           image_file=next_image,
                            image_path=image_path,
                            progress_text=progress_text,
-                           progress_percent=progress_percent) # Add progress_percent here
+                           progress_percent=progress_percent,
+                           is_done=is_done) # Pass the completion flag
 
 
 # --- Static File Serving Setup ---
