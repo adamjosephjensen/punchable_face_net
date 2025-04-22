@@ -111,7 +111,9 @@ def index():
     # --- GET Request Logic ---
     all_images = get_all_images()
     if not all_images:
-         flash(f"No images found in {IMAGE_DIR}. Please add images.", "warning")
+         # Updated message to reflect the new image source (training list file)
+         flash(f"No images found. Ensure '{TRAINING_LIST_FILE}' exists and is not empty. "
+               f"Run generate_training_list.py if needed.", "warning")
          # Use just the filename, Flask searches in the configured template_folder
          return render_template('labeler.html', image_file=None, progress_text="No images found.")
 
