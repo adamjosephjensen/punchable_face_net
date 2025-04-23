@@ -1,24 +1,9 @@
-goal: make a python script that makes a list of CelebA files we want to use for a training set.
-
-Attribute file: /Users/adamjensen/Documents/celebA/CelebA/anno/list_attr_celeba.txt
-Format: 1 for true, -1 for false
-Target column: male
-Target value: 1
-head of attribute file:
-202599
-5_o_Clock_Shadow Arched_Eyebrows Attractive Bags_Under_Eyes Bald Bangs Big_Lips Big_Nose Black_Hair Blond_Hair Blurry Brown_Hair Bushy_Eyebrows Chubby Double_Chin Eyeglasses Goatee Gray_Hair Heavy_Makeup High_Cheekbones Male Mouth_Slightly_Open Mustache Narrow_Eyes No_Beard Oval_Face Pale_Skin Pointy_Nose Receding_Hairline Rosy_Cheeks Sideburns Smiling Straight_Hair Wavy_Hair Wearing_Earrings Wearing_Hat Wearing_Lipstick Wearing_Necklace Wearing_Necktie Young
-000001.jpg -1  1  1 -1 -1 -1 -1 -1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1  1  1 -1  1 -1 -1  1 -1 -1  1 -1 -1 -1  1  1 -1  1 -1  1 -1 -1  1
-000002.jpg -1 -1 -1  1 -1 -1 -1  1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1 -1  1 -1  1 -1 -1  1 -1 -1 -1 -1 -1 -1  1 -1 -1 -1 -1 -1 -1 -1  1
-
-
-images location: /Users/adamjensen/Documents/celebA/CelebA/Img/img_align_celeb
-Example files:  067521.jpg, 101288.jpg, 135055.jpg
-
-destination location: /Users/adamjensen/Documents/punchable_face_net/data/training_imgs.txt
-format: one filename per line
-
-requirements: given a number, produce a file that lists the filenames we want to train on. This should be deterministic, i.e. given "1000" it should put the same 1000 files every time in the file. All of the selected images should be of males, which we can learn from the attribute file.
-
-concerns: up to this point, we have been copying files into a local folder for hosting. I think this is actually kind of dumb, because I already have the files, and like, why duplicate the data? I think the concern in the past was oh if we have a lot of files that could slow down the performance but I don't buy that. Opening a specific file in a directory should take the same ammount of time no matter how many files are in that directory, right? PLEASE CONFIRM.
-
-related edits: need to edit the app to serve images from the images location. other changes may be necessary, think about this for a second, will the data labels still be correct?
+notes:
+- having an undo button would be nice
+- it'd be nice to have a `flag` button where I can mark images that contain problems with the dataset. some of the men are labelled as women. <musing>In general: I wonder how many public data sets contain errors like this and what acceptable error rates are.</musing>
+- I am noticing that this subjective task is difficult. How punchable should they be in order to be marked as punchable? how to hold a consistent standard? is it possible to prompt a multi-modal model for what it thinks of as punchable?
+- in general I think I may actually have to scrape images of ceos and label them all by hand. hope not but that's what it feels like.
+- it seems like a lot of these images have weird artifacts where the pixels are "smeared" up or down 
+- important: i'm worried the web app might be serving the same image twice even after i have classified it. 
+- uh oh, the labeller served 1002/1000 images. it should stop when I have classified all the images.
+- I likely need to read about the data labelling techniques used in the paper on measuring trustworthiness of faces.
