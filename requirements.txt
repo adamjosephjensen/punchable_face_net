@@ -1,3 +1,5 @@
+tensorboard
+tensorflow
 aider-chat==0.82.2
 aiohappyeyeballs==2.6.1
 aiohttp==3.11.16
