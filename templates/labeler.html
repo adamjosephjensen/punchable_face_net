@@ -4,7 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Image Labeler</title>
+    {# Use the title passed from Flask #}
+    <title>{{ title }}</title>
     <style>
         body { font-family: sans-serif; margin: 20px; }
         .container { max-width: 600px; margin: auto; text-align: center; }
@@ -34,7 +35,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Label the Face</h1>
+        {# Use the title passed from Flask #}
+        <h1>{{ title }}</h1>
 
         <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -66,20 +68,26 @@
                     <button type="button" onclick="submitLabel('punchable')">Punchable (J)</button>
                     <button type="button" onclick="submitLabel('not_punchable')">NOT punchable (K)</button>
                     <button type="button" onclick="submitLabel('very_not_punchable')">VERY NOT punchable (L)</button>
-                    <hr style="margin: 10px 0;"> <!-- Optional visual separator -->
-                    <button type="button" onclick="submitLabel('skip')">Skip (S)</button>
-                    <button type="button" onclick="submitLabel('flag')">Flag (F)</button>
-                    <button type="button" onclick="submitUndo()">Undo (A)</button> <!-- Calls new JS function -->
+                    {# Conditionally show Skip/Flag/Undo only in label mode #}
+                    {% if mode == 'label' %}
+                        <hr style="margin: 10px 0;"> <!-- Optional visual separator -->
+                        <button type="button" onclick="submitLabel('skip')">Skip (S)</button>
+                        <button type="button" onclick="submitLabel('flag')">Flag (F)</button>
+                        <button type="button" onclick="submitUndo()">Undo (A)</button> <!-- Calls new JS function -->
+                    {% endif %}
                 </div>
                  <div class="key-hints">
                     Shortcuts:
                     <kbd>H</kbd> VERY punchable |
                     <kbd>J</kbd> Punchable |
                     <kbd>K</kbd> NOT punchable |
-                    <kbd>L</kbd> VERY NOT punchable |
-                    <kbd>S</kbd> Skip |
-                    <kbd>F</kbd> Flag |
-                    <kbd>A</kbd> Undo
+                    <kbd>L</kbd> VERY NOT punchable
+                    {# Conditionally show Skip/Flag/Undo shortcuts only in label mode #}
+                    {% if mode == 'label' %}
+                        | <kbd>S</kbd> Skip |
+                        <kbd>F</kbd> Flag |
+                        <kbd>A</kbd> Undo
+                    {% endif %}
                 </div>
             </form>
 
@@ -227,10 +235,16 @@
         });
 
         // --- Initialization ---
-        // Start the timer only if there is an image currently displayed
-        if (document.getElementById('labeling-image')) {
-            startTimer();
-        }
+        // Start the timer and input blocking only in 'label' mode and if an image is displayed
+        {% if mode == 'label' %}
+            if (document.getElementById('labeling-image')) {
+                startTimer(); // This function now handles both timer and input blocking
+            }
+        {% else %}
+            // In 'rerate' mode, ensure input is immediately unblocked if the logic was somehow included
+            inputBlocked = false;
+            // console.log("Re-rate mode: Input UNBLOCKED immediately, timer disabled."); // Optional debug
+        {% endif %}
 
     </script>
 </body>

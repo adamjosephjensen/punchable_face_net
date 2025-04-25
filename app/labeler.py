@@ -11,6 +11,8 @@ TRAINING_LIST_FILE = os.path.abspath('./data/training_imgs.txt')
 LABELS_FILE = os.path.abspath('./data/labels.csv')
 SKIPPED_FILE = os.path.abspath('./data/skipped.txt') # New
 FLAGGED_FILE = os.path.abspath('./data/flagged.txt') # New
+DEV_FILE = os.path.abspath('./data/dev.csv') # Need path to dev set
+DEV_RERATED_FILE = os.path.abspath('./data/dev_rerated.csv') # New file for re-ratings
 # IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'} # No longer needed when reading from list
 BATCH_SIZE = 10 # How many images to label before showing progress
 
@@ -213,110 +215,234 @@ def get_next_image_to_label(all_images, labeled_images, skipped_images, flagged_
     print("No more images to label (unseen or skipped).")
     return None
 
+# --- Re-rating Mode Helper Functions ---
+
+def get_dev_images_to_rerate():
+    """Reads the dev set CSV and returns a list of filenames."""
+    dev_images = []
+    if not os.path.exists(DEV_FILE):
+        print(f"Error: Development set file not found at {DEV_FILE}")
+        flash(f"Error: Dev set file '{os.path.basename(DEV_FILE)}' not found. Cannot start re-rating.", "error")
+        return dev_images # Return empty list
+
+    try:
+        # Read only the 'filename' column
+        df_dev = pd.read_csv(DEV_FILE, usecols=['filename'])
+        dev_images = df_dev['filename'].tolist()
+    except (IOError, pd.errors.EmptyDataError, ValueError, KeyError) as e:
+        print(f"Error reading or parsing dev file {DEV_FILE}: {e}")
+        flash(f"Error reading dev set file '{os.path.basename(DEV_FILE)}'.", "error")
+    return dev_images
+
+def get_rerated_images():
+    """Reads the dev_rerated.csv file and returns a set of already re-rated filenames."""
+    rerated = set()
+    if os.path.exists(DEV_RERATED_FILE):
+        try:
+            with open(DEV_RERATED_FILE, 'r', newline='') as f:
+                reader = csv.reader(f)
+                try:
+                    header = next(reader) # Skip header
+                    if header != ['filename', 'new_label']:
+                         print(f"Warning: Unexpected header in {DEV_RERATED_FILE}. Re-writing.")
+                         write_rerated_header() # Attempt to fix header
+                    else:
+                        for row in reader:
+                            if row and len(row) >= 1:
+                                rerated.add(row[0])
+                except StopIteration:
+                     if not os.path.exists(DEV_RERATED_FILE) or os.path.getsize(DEV_RERATED_FILE) == 0:
+                          write_rerated_header()
+        except (IOError, csv.Error, IndexError) as e:
+            print(f"Warning: Could not read or parse re-rated file {DEV_RERATED_FILE}. Treating as empty. Error: {e}")
+            write_rerated_header()
+    else:
+        # Ensure header exists if file doesn't exist yet
+        write_rerated_header()
+    return rerated
+
+def write_rerated_header():
+    """Writes the header row to the dev_rerated.csv file if needed."""
+    write_header = True
+    if os.path.exists(DEV_RERATED_FILE) and os.path.getsize(DEV_RERATED_FILE) > 10:
+         try:
+             with open(DEV_RERATED_FILE, 'r', newline='') as f:
+                 reader = csv.reader(f)
+                 header = next(reader)
+                 if header == ['filename', 'new_label']:
+                     write_header = False
+         except (IOError, StopIteration, csv.Error):
+             pass
+
+    if write_header:
+        try:
+            with open(DEV_RERATED_FILE, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['filename', 'new_label'])
+        except IOError as e:
+            print(f"Error: Could not write header to re-rated file {DEV_RERATED_FILE}. Error: {e}")
+
+def get_next_image_to_rerate(all_dev_images, already_rerated_images):
+    """Finds the next image from the dev set that hasn't been re-rated."""
+    remaining_to_rerate = [img for img in all_dev_images if img not in already_rerated_images]
+
+    if remaining_to_rerate:
+        print(f"Selecting from {len(remaining_to_rerate)} dev images remaining to re-rate.")
+        return random.choice(remaining_to_rerate)
+    else:
+        print("All dev images have been re-rated.")
+        return None
+
+
 # --- Flask Routes ---
+# Access the mode set in the main guard
+mode = app.config.get('LABELER_MODE', 'label')
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    # --- POST Request Logic ---
     if request.method == 'POST':
         filename = request.form.get('filename')
-        action = request.form.get('label') # Renamed variable to 'action' - can be label, skip, or flag
+        action = request.form.get('label') # Input name is 'label' in the form
 
         if not filename or not action:
             flash("Error: Missing filename or action in submission.", "error")
             return redirect(url_for('index'))
 
-        # Validate the received action
-        if action not in VALID_ACTIONS:
-            flash(f"Error: Invalid action '{action}' received.", "error")
-            return redirect(url_for('index'))
+        # --- Handle POST based on mode ---
+        if mode == 'rerate':
+            # In re-rate mode, only accept the 4 label values
+            if action in LABEL_MAP:
+                label_int = LABEL_MAP[action]
+                try:
+                    # Append to re-rated CSV
+                    with open(DEV_RERATED_FILE, 'a', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([filename, label_int])
+                    flash(f"Re-rated '{filename}' as '{action}' ({label_int}).", "success")
+                except IOError as e:
+                    flash(f"Error writing re-rated label for {filename}: {e}", "error")
+                except Exception as e:
+                     flash(f"An unexpected error occurred writing re-rated label: {e}", "error")
+            else:
+                # Ignore skip/flag/invalid actions in re-rate mode POST
+                flash(f"Invalid action '{action}' in re-rate mode. Only labels (H,J,K,L) are accepted.", "warning")
 
-        # --- Store action for potential Undo ---
-        global last_action_info # Declare intent to modify global variable
-        last_action_info = {'action': action, 'filename': filename, 'value': None}
+        elif mode == 'label':
+            # Original labeling mode POST logic
+            if action not in VALID_ACTIONS:
+                flash(f"Error: Invalid action '{action}' received.", "error")
+                return redirect(url_for('index'))
 
-        # --- Handle different actions ---
-        if action in LABEL_MAP:
-            # It's a label action
-            label_int = LABEL_MAP[action]
-            last_action_info['value'] = label_int # Store the label value for undo
-            try:
-                # Append to CSV
-                with open(LABELS_FILE, 'a', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerow([filename, label_int])
-                flash(f"Labeled '{filename}' as '{action}' ({label_int}).", "success")
-            except IOError as e:
-                flash(f"Error writing label for {filename}: {e}", "error")
-                last_action_info = None # Clear undo info on error
-            except Exception as e:
-                 flash(f"An unexpected error occurred writing label: {e}", "error")
-                 last_action_info = None # Clear undo info on error
+            global last_action_info # Declare intent to modify global variable
+            last_action_info = {'action': action, 'filename': filename, 'value': None}
 
-        elif action == 'skip':
-            # Append filename to skipped file
-            append_line_to_file(SKIPPED_FILE, filename)
-            flash(f"Skipped '{filename}'.", "info") # Changed flash category
+            if action in LABEL_MAP:
+                label_int = LABEL_MAP[action]
+                last_action_info['value'] = label_int
+                try:
+                    with open(LABELS_FILE, 'a', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([filename, label_int])
+                    flash(f"Labeled '{filename}' as '{action}' ({label_int}).", "success")
+                except IOError as e:
+                    flash(f"Error writing label for {filename}: {e}", "error")
+                    last_action_info = None
+                except Exception as e:
+                     flash(f"An unexpected error occurred writing label: {e}", "error")
+                     last_action_info = None
 
-        elif action == 'flag':
-            # Append filename to flagged file
-            append_line_to_file(FLAGGED_FILE, filename)
-            flash(f"Flagged '{filename}'.", "warning")
+            elif action == 'skip':
+                append_line_to_file(SKIPPED_FILE, filename)
+                flash(f"Skipped '{filename}'.", "info")
+                last_action_info['value'] = None # Ensure value is None for skip/flag
 
-        # Redirect to GET to show the next image regardless of action
+            elif action == 'flag':
+                append_line_to_file(FLAGGED_FILE, filename)
+                flash(f"Flagged '{filename}'.", "warning")
+                last_action_info['value'] = None # Ensure value is None for skip/flag
+
+        # Redirect to GET for the next image in either mode
         return redirect(url_for('index'))
 
     # --- GET Request Logic ---
-    all_images = get_all_images()
-    if not all_images:
-         # Updated message to reflect the new image source (training list file)
-         flash(f"No images found. Ensure '{TRAINING_LIST_FILE}' exists and is not empty. "
-               f"Run generate_training_list.py if needed.", "warning")
-         return render_template('labeler.html', image_file=None, progress_text="No images found.", is_done=False)
+    next_image = None
+    progress_text = "Initializing..."
+    progress_detail = ""
+    is_done = False
+    page_title = "Label the Face" # Default title
 
-    labeled_images, skipped_images, flagged_images = get_processed_images()
-    next_image = get_next_image_to_label(all_images, labeled_images, skipped_images, flagged_images)
+    if mode == 'rerate':
+        page_title = "Re-rate Dev Set Image"
+        all_dev_images = get_dev_images_to_rerate()
+        if not all_dev_images:
+            # Error message already flashed by get_dev_images_to_rerate
+             return render_template('labeler.html', mode=mode, title=page_title, image_file=None, progress_text="Error loading dev set.", is_done=True)
 
-    total_images = len(all_images)
-    # Calculate progress based on labeled images only
-    labeled_count = len(labeled_images)
-    processed_count = len(labeled_images | skipped_images | flagged_images) # Count unique processed images
-    remaining_unseen = len(all_images) - processed_count
-    remaining_skippable = len(skipped_images - (labeled_images | flagged_images))
+        already_rerated = get_rerated_images()
+        next_image = get_next_image_to_rerate(all_dev_images, already_rerated)
 
-    # Update progress text
-    progress_text = f"Labeled: {labeled_count} | Skipped: {len(skipped_images)} | Flagged: {len(flagged_images)} | Total Images: {total_images}"
-    progress_detail = f"Remaining: {remaining_unseen} unseen, {remaining_skippable} skippable."
+        total_dev_images = len(all_dev_images)
+        rerated_count = len(already_rerated)
+        is_done = next_image is None
 
-    is_done = next_image is None # True if no next image can be found
+        progress_text = f"Re-rating Dev Set ({rerated_count} / {total_dev_images} completed)"
+        if is_done:
+            progress_detail = "Re-rating complete!"
+        else:
+            progress_detail = f"{total_dev_images - rerated_count} images remaining."
 
-    if is_done and total_images > 0:
-        progress_text = f"All {total_images} images processed. Labeled: {labeled_count}, Skipped: {len(skipped_images)}, Flagged: {len(flagged_images)}."
-        progress_detail = "Labeling complete!"
+    elif mode == 'label':
+        page_title = "Label the Face"
+        all_images = get_all_images()
+        if not all_images:
+             flash(f"No images found. Ensure '{TRAINING_LIST_FILE}' exists and is not empty. "
+                   f"Run generate_training_list.py if needed.", "warning")
+             return render_template('labeler.html', mode=mode, title=page_title, image_file=None, progress_text="No images found.", is_done=False)
 
-    # Calculate percentage for the progress bar - Optional, can be removed or based on labeled_count
-    # progress_percent = 0
-    # if total_images > 0:
-    #     progress_percent = round((labeled_count / total_images) * 100)
+        labeled_images, skipped_images, flagged_images = get_processed_images()
+        next_image = get_next_image_to_label(all_images, labeled_images, skipped_images, flagged_images)
+
+        total_images = len(all_images)
+        labeled_count = len(labeled_images)
+        processed_count = len(labeled_images | skipped_images | flagged_images)
+        remaining_unseen = len(all_images) - processed_count
+        remaining_skippable = len(skipped_images - (labeled_images | flagged_images))
+
+        progress_text = f"Labeled: {labeled_count} | Skipped: {len(skipped_images)} | Flagged: {len(flagged_images)} | Total Images: {total_images}"
+        progress_detail = f"Remaining: {remaining_unseen} unseen, {remaining_skippable} skippable."
+
+        is_done = next_image is None
+
+        if is_done and total_images > 0:
+            progress_text = f"All {total_images} images processed. Labeled: {labeled_count}, Skipped: {len(skipped_images)}, Flagged: {len(flagged_images)}."
+            progress_detail = "Labeling complete!"
+
+    # --- Common GET Logic ---
     image_path = None
     if next_image:
-        # Use the new route to serve images directly from CelebA dir
         image_path = url_for('serve_celeba_image', filename=next_image)
 
-    # Add a flag to indicate completion status
-    is_done = next_image is None and total_images > 0 # True if no next image AND there were images
-
-    # Use just the filename, Flask searches in the configured template_folder
+    # Pass mode to template for conditional rendering
     return render_template('labeler.html',
+                           mode=mode, # Pass the mode
+                           title=page_title, # Pass the title
                            image_file=next_image,
                            image_path=image_path,
-                           progress_text=progress_text, # Main progress summary
-                           progress_detail=progress_detail, # Detailed counts
-                           # progress_percent=progress_percent, # Can remove or base on labeled_count
+                           progress_text=progress_text,
+                           progress_detail=progress_detail,
                            is_done=is_done)
 
 
 @app.route('/undo', methods=['POST'])
 def undo():
-    """Reverts the last label, skip, or flag action."""
+    """Reverts the last label, skip, or flag action (only in 'label' mode)."""
+    # Access the mode
+    mode = app.config.get('LABELER_MODE', 'label')
+    if mode == 'rerate':
+        flash("Undo is not available in re-rating mode.", "warning")
+        return {"status": "error", "message": "Undo unavailable in re-rate mode"}, 403 # Forbidden
+
     global last_action_info # Declare intent to read and modify global variable
 
     if last_action_info is None:
@@ -395,11 +521,31 @@ app.static_url_path = '/static'
 
 
 if __name__ == '__main__':
-    # Ensure all necessary data files (labels, skipped, flagged) are checked/created at startup
-    get_processed_images()
-    # Note: For development, debug=True is helpful.
-    # For production or sharing, set debug=False.
+    # --- Argument Parsing ---
+    parser = argparse.ArgumentParser(description="CelebA Image Labeler/Re-rater")
+    parser.add_argument(
+        '--mode',
+        type=str,
+        choices=['label', 'rerate'],
+        default='label',
+        help="Mode of operation: 'label' for initial labeling, 'rerate' for re-rating the dev set."
+    )
+    args = parser.parse_args()
+
+    # Store mode in Flask app config for access in routes
+    app.config['LABELER_MODE'] = args.mode
+    print(f"--- Running in {args.mode.upper()} mode ---")
+
+    # Ensure necessary files/headers are checked/created based on mode
+    if args.mode == 'label':
+        print("Checking/Creating label, skip, flag files...")
+        get_processed_images() # Checks labels.csv, skipped.txt, flagged.txt
+    elif args.mode == 'rerate':
+        print("Checking/Creating dev_rerated.csv file...")
+        get_rerated_images() # Checks dev_rerated.csv
+
+    # Note: For development, debug=True is helpful. For production, set debug=False.
     # host='0.0.0.0' makes it accessible on your network
     print(f"Serving images from: {CELEBA_IMAGE_DIR}")
-    print(f"Access the labeler at: http://127.0.0.1:5000 or http://<your-ip>:5000")
+    print(f"Access the tool at: http://127.0.0.1:5000 or http://<your-ip>:5000")
     app.run(debug=True, host='0.0.0.0')
