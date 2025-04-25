@@ -12,6 +12,16 @@ LABELS_FILE = os.path.abspath('./data/labels.csv')
 # IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'} # No longer needed when reading from list
 BATCH_SIZE = 10 # How many images to label before showing progress
 
+# --- Label Mapping ---
+LABEL_MAP = {
+    "very_punchable": 3,
+    "punchable": 2,
+    "not_punchable": 1,
+    "very_not_punchable": 0
+}
+# Define the set of valid action strings (labels + skip + flag)
+VALID_ACTIONS = set(LABEL_MAP.keys()) | {'skip', 'flag'}
+
 # --- Flask App Setup ---
 # Calculate paths relative to the script's location
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -63,13 +73,14 @@ def get_labeled_images():
     return labeled
 
 def write_labels_header():
-     """Writes the header row to the CSV file."""
-     try:
-        with open(LABELS_FILE, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['filename', 'label']) # label: 1=annoying, 0=not annoying
-     except IOError as e:
-         print(f"Error: Could not write header to labels file {LABELS_FILE}. Error: {e}")
+    """Writes the header row to the CSV file."""
+    try:
+       with open(LABELS_FILE, 'w', newline='') as f:
+           writer = csv.writer(f)
+           # Header remains the same, but meaning changes: 0-3 scale
+           writer.writerow(['filename', 'label']) # label: 3=very_punchable, 2=punchable, 1=not_punchable, 0=very_not_punchable
+    except IOError as e:
+        print(f"Error: Could not write header to labels file {LABELS_FILE}. Error: {e}")
 
 
 def get_next_image_to_label(all_images, labeled_images):
@@ -84,28 +95,48 @@ def get_next_image_to_label(all_images, labeled_images):
 def index():
     if request.method == 'POST':
         filename = request.form.get('filename')
-        label = request.form.get('label') # 'annoying' or 'not_annoying' or 'skip'
+        action = request.form.get('label') # Renamed variable to 'action' - can be label, skip, or flag
 
-        if not filename or not label:
-             flash("Error: Missing filename or label in submission.", "error")
-             return redirect(url_for('index'))
+        if not filename or not action:
+            flash("Error: Missing filename or action in submission.", "error")
+            return redirect(url_for('index'))
 
-        if label != 'skip':
-            # Convert label to 1 or 0
-            label_int = 1 if label == 'annoying' else 0
+        # Validate the received action
+        if action not in VALID_ACTIONS:
+            flash(f"Error: Invalid action '{action}' received.", "error")
+            return redirect(url_for('index'))
+
+        # --- Handle different actions ---
+        if action in LABEL_MAP:
+            # It's a label action
+            label_int = LABEL_MAP[action]
             try:
                 # Append to CSV
                 with open(LABELS_FILE, 'a', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow([filename, label_int])
+                # TODO: Store this action for potential Undo
+                flash(f"Labeled '{filename}' as '{action}' ({label_int}).", "success") # Optional feedback
             except IOError as e:
                 flash(f"Error writing label for {filename}: {e}", "error")
-                # Consider how to handle write errors - maybe retry?
             except Exception as e:
                  flash(f"An unexpected error occurred writing label: {e}", "error")
 
+        elif action == 'skip':
+            # Handle skip action (will write to skipped.txt later)
+            # TODO: Implement writing to skipped.txt
+            # TODO: Store this action for potential Undo
+            flash(f"Skipped '{filename}'.", "warning") # Optional feedback
+            pass # Placeholder for now
 
-        # Redirect to GET to show the next image
+        elif action == 'flag':
+            # Handle flag action (will write to flagged.txt later)
+            # TODO: Implement writing to flagged.txt
+            # TODO: Store this action for potential Undo
+            flash(f"Flagged '{filename}'.", "warning") # Optional feedback
+            pass # Placeholder for now
+
+        # Redirect to GET to show the next image regardless of action
         return redirect(url_for('index'))
 
     # --- GET Request Logic ---
