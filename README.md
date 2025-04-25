@@ -31,7 +31,7 @@ This step selects a subset of images based on specific attributes (currently con
     *   `DEFAULT_NUM_IMAGES`: Default number of images to select.
 *   **Run:** Execute the script from the project root directory. You can optionally specify the number of images:
     ```bash
-    # Generate list with default number of images (1000)
+    # Generate list with default number of images
     python generate_training_list.py
 
     # Generate list with a specific number of images (e.g., 500)
@@ -54,7 +54,7 @@ This starts a local web server to display images and record your labels.
     ```
 *   **Access:** Open your web browser and go to `http://127.0.0.1:5000` (or the address shown in the terminal, possibly using your machine's IP if accessing from another device on the network).
 *   **Labeling:**
-    *   **Timer:** You have **1.5 seconds** to label each image after it appears. If the timer expires, the image is automatically skipped. This encourages capturing a quick, visceral reaction rather than prolonged judgment.
+    *   **Timer:** You have a limited time to label each image after it appears. If the timer expires, the image is automatically skipped. This encourages capturing a quick, visceral reaction rather than prolonged judgment.
     *   **Buttons:** Click one of the four label buttons ("VERY punchable", "Punchable", "NOT punchable", "VERY NOT punchable"), "Skip", or "Flag".
     *   **Keyboard Shortcuts:**
         *   <kbd>H</kbd>: VERY punchable
@@ -75,8 +75,7 @@ This starts a local web server to display images and record your labels.
 
 ## Training a Model
 
-This project includes scripts to train a simple image classifier using transfer learning to predict
-the "annoying" label based on the collected data.
+This project includes scripts to train a simple image classifier using transfer learning to predict the "annoying" label based on the collected data.
 
 ### 1. Prepare Data Splits
 
@@ -90,15 +89,13 @@ This will create `data/train.csv`, `data/dev.csv`, and `data/test.csv`. Skipped 
 
 2. Run Training
 
-The train.py script handles the model training process. It uses a pre-trained ResNet18 model and
-fine-tunes only the final classification layer on your labeled data.
+The train.py script handles the model training process. It uses a pre-trained ResNet18 model and fine-tunes only the final classification layer on your labeled data.
 
-To start training with default settings (10 epochs, batch size 32, learning rate 0.001, using the
-default CelebA image path):
+To start training with default settings (10 epochs, batch size 32, learning rate 0.001, using the default CelebA image path):
 
-
+```bash
 python train.py
-
+```
 
 You can customize the training using command-line arguments:
 
@@ -123,13 +120,13 @@ directory.
 
 3. Monitor with TensorBoard
 
-While the training script is running, you can monitor the learning curves (loss and accuracy for
-training and validation sets) using TensorBoard.
+While the training script is running, you can monitor the learning curves (loss and accuracy for training and validation sets) using TensorBoard.
 
 Open a separate terminal, navigate to your project directory, and run:
 
-
+```bash
 tensorboard --logdir runs
+```
 
 
 (Assuming the default --log_dir was used. If you specified a different directory, use that path
@@ -141,12 +138,7 @@ to view the training progress.
 About the Initial Model (ResNet18 Transfer Learning)
 
  • Why ResNet18? ResNet (Residual Network) architectures are well-established and effective for
-   image classification. ResNet18 is a relatively small and fast version, making it a good starting
-   point for quick baseline experiments.
- • Transfer Learning: Instead of training a model from scratch (which would require vast amounts of
+   image classification. ResNet18 is a relatively small and fast version, making it a good starting point for quick baseline experiments.
    data), we use a ResNet18 model pre-trained on the large ImageNet dataset. This model already
    understands general visual features (edges, textures, shapes, etc.).
- • What is Trained? We freeze the weights of all the pre-trained layers (the convolutional base) and
-   only train the final classification layer (a fully connected layer, `model.fc` in the code). This
-   layer is replaced with a new one tailored to our specific task (**4 outputs**: corresponding to the "punchability" scale from 0 to 3). This process adapts the general visual knowledge of the pre-trained model to our specific subjective labels with relatively little data.
 
