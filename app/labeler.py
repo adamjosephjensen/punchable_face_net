@@ -182,12 +182,12 @@ def write_labels_header():
 
     if write_header:
         try:
-       with open(LABELS_FILE, 'w', newline='') as f:
-           writer = csv.writer(f)
-           # Header remains the same, but meaning changes: 0-3 scale
-           writer.writerow(['filename', 'label']) # label: 3=very_punchable, 2=punchable, 1=not_punchable, 0=very_not_punchable
-    except IOError as e:
-        print(f"Error: Could not write header to labels file {LABELS_FILE}. Error: {e}")
+            with open(LABELS_FILE, 'w', newline='') as f:
+                writer = csv.writer(f)
+                # Header remains the same, but meaning changes: 0-3 scale
+                writer.writerow(['filename', 'label']) # label: 3=very_punchable, 2=punchable, 1=not_punchable, 0=very_not_punchable
+        except IOError as e:
+            print(f"Error: Could not write header to labels file {LABELS_FILE}. Error: {e}")
 
 
 def get_next_image_to_label(all_images, labeled_images, skipped_images, flagged_images):
