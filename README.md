@@ -55,7 +55,12 @@ This starts a local web server to display images and record your labels.
 *   **Access:** Open your web browser and go to `http://127.0.0.1:5000` (or the address shown in the terminal, possibly using your machine's IP if accessing from another device on the network).
 *   **Labeling:**
     *   **Timer:** You have a limited time to label each image after it appears. If the timer expires, the image is automatically skipped. This encourages capturing a quick, visceral reaction rather than prolonged judgment.
-    *   **Buttons:** Click one of the four label buttons ("VERY punchable", "Punchable", "NOT punchable", "VERY NOT punchable"), "Skip", or "Flag".
+    *   **Labels:** There are four labels:
+        * "VERY punchable": meaning I experience a marked urge to hit them in the face.
+        * "Punchable": meaning a less distinct urge to hit the person in the face.
+        * "NOT punchable": meaning no particular desire to punch this person or see them get punched.
+        * "VERY NOT punchable": meaning a marked desire for the person not to be punched.
+    *   **Buttons:** Click one of the four label buttons , "Skip", or "Flag".
     *   **Keyboard Shortcuts:**
         *   <kbd>H</kbd>: VERY punchable
         *   <kbd>J</kbd>: Punchable
