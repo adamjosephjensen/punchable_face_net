@@ -45,16 +45,18 @@
           {% endif %}
         {% endwith %}
 
-        <p class="progress">{{ progress_text }}</p>
+        <p class="progress">{{ progress_text }}</p> {# Show main counts #}
 
         {# Check if labeling is complete #}
         {% if is_done %}
             <h2>All Done!</h2>
-            <p>You have labeled all available images.</p>
+            <p>{{ progress_text }}</p> {# Show final counts #}
+            <!-- <p>{{ progress_detail }}</p> --> {# Detail might be redundant when done #}
             <p>You can close this window now.</p>
 
         {# Check if there are images to label #}
         {% elif image_file %}
+            <p class="progress">{{ progress_detail }}</p> {# Show detailed counts #}
             <img src="{{ image_path }}" alt="Image to label" id="labeling-image">
             <form method="post" action="{{ url_for('index') }}" id="label-form">
                 <input type="hidden" name="filename" value="{{ image_file }}">
