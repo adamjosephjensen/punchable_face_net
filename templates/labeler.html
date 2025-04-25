@@ -73,6 +73,8 @@
                         <hr style="margin: 10px 0;"> <!-- Optional visual separator -->
                         <button type="button" onclick="submitLabel('skip')">Skip (S)</button>
                         <button type="button" onclick="submitLabel('flag')">Flag (F)</button>
+                        {# Add Pause/Resume button #}
+                        <button type="button" onclick="togglePause()" id="pause-resume-button">Pause (P)</button>
                         <button type="button" onclick="submitUndo()">Undo (A)</button> <!-- Calls new JS function -->
                     {% endif %}
                 </div>
@@ -86,6 +88,7 @@
                     {% if mode == 'label' %}
                         | <kbd>S</kbd> Skip |
                         <kbd>F</kbd> Flag |
+                        <kbd>P</kbd> Pause/Resume | {# Add Pause shortcut hint #}
                         <kbd>A</kbd> Undo
                     {% endif %}
                 </div>
@@ -104,6 +107,7 @@
         const TIMER_DURATION = 2000; // 2.0 seconds
         const INPUT_BLOCK_DURATION = 300; // 0.3 seconds
         let inputBlocked = true; // Start with input blocked
+        let isPaused = false; // State variable for pause functionality
 
         // Function to clear the existing timer (if any)
         function clearTimer() {
@@ -144,9 +148,10 @@
 
         // Function to submit a label or action (skip, flag)
         function submitLabel(labelValue) {
-            if (inputBlocked) {
-                // console.log("Input blocked, ignoring submitLabel."); // Optional: for debugging
-                return; // Ignore if input is blocked
+            // Ignore if paused OR if input is blocked
+            if (isPaused || inputBlocked) {
+                // console.log(`SubmitLabel ignored: Paused=${isPaused}, InputBlocked=${inputBlocked}`); // Optional debug
+                return;
             }
             clearTimer(); // Stop the timer as soon as the user acts
             const form = document.getElementById('label-form');
@@ -159,9 +164,10 @@
 
         // Function to handle the Undo action
         function submitUndo() {
-             if (inputBlocked) {
-                // console.log("Input blocked, ignoring submitUndo."); // Optional: for debugging
-                return; // Ignore if input is blocked
+             // Ignore if paused OR if input is blocked
+             if (isPaused || inputBlocked) {
+                 // console.log(`SubmitUndo ignored: Paused=${isPaused}, InputBlocked=${inputBlocked}`); // Optional debug
+                return;
             }
             clearTimer(); // Stop the timer if user hits undo
             // We'll make a POST request to a dedicated /undo endpoint
@@ -191,11 +197,41 @@
             });
         }
 
+        // Function to toggle Pause/Resume state
+        function togglePause() {
+            // Only allow pausing if in label mode and an image is shown
+            {% if mode == 'label' %}
+                if (!document.getElementById('labeling-image')) {
+                    return; // Don't allow pause if no image is displayed
+                }
+
+                isPaused = !isPaused; // Toggle the paused state
+                const pauseButton = document.getElementById('pause-resume-button');
+
+                if (isPaused) {
+                    clearTimer(); // Stop the auto-skip timer
+                    inputBlocked = true; // Ensure input remains blocked while paused
+                    if (pauseButton) pauseButton.textContent = "Resume (P)";
+                    console.log("Labeling Paused. Input blocked."); // Optional debug
+                    // Optionally add a visual indicator like dimming the image or showing text
+                    // document.getElementById('labeling-image').style.opacity = '0.5';
+                } else {
+                    if (pauseButton) pauseButton.textContent = "Pause (P)";
+                    console.log("Labeling Resumed."); // Optional debug
+                    // Remove visual indicator if added
+                    // document.getElementById('labeling-image').style.opacity = '1';
+                    // Restart the timer and input blocking sequence
+                    startTimer();
+                }
+            {% endif %}
+        }
+
+
         // Keyboard shortcuts
         document.addEventListener('keydown', function(event) {
-            // Ignore if input is blocked
-            if (inputBlocked) {
-                 // console.log("Input blocked, ignoring keydown."); // Optional: for debugging
+            // Ignore if paused OR if input is blocked (e.g., during initial delay)
+            if (isPaused || inputBlocked) {
+                 // console.log(`Keydown ignored: Paused=${isPaused}, InputBlocked=${inputBlocked}`); // Optional debug
                 return;
             }
             // Ignore shortcuts if focus is on an input element
@@ -230,6 +266,9 @@
                     break;
                 case 'A':
                     submitUndo();
+                    break;
+                case 'P': // Add Pause/Resume shortcut
+                    togglePause();
                     break;
             }
         });
