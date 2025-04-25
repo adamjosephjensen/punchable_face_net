@@ -62,12 +62,24 @@
                 <input type="hidden" name="filename" value="{{ image_file }}">
                 <input type="hidden" name="label" id="label-input">
                 <div class="controls">
-                    <button type="button" onclick="submitLabel('annoying')">Annoying (H)</button>
-                    <button type="button" onclick="submitLabel('not_annoying')">Not Annoying (L)</button>
+                    <button type="button" onclick="submitLabel('very_punchable')">VERY punchable (H)</button>
+                    <button type="button" onclick="submitLabel('punchable')">Punchable (J)</button>
+                    <button type="button" onclick="submitLabel('not_punchable')">NOT punchable (K)</button>
+                    <button type="button" onclick="submitLabel('very_not_punchable')">VERY NOT punchable (L)</button>
+                    <hr style="margin: 10px 0;"> <!-- Optional visual separator -->
                     <button type="button" onclick="submitLabel('skip')">Skip (S)</button>
+                    <button type="button" onclick="submitLabel('flag')">Flag (F)</button>
+                    <button type="button" onclick="submitUndo()">Undo (A)</button> <!-- Calls new JS function -->
                 </div>
                  <div class="key-hints">
-                    Use keyboard shortcuts: <kbd>H</kbd> for Annoying, <kbd>L</kbd> for Not Annoying, <kbd>S</kbd> for Skip
+                    Shortcuts:
+                    <kbd>H</kbd> VERY punchable |
+                    <kbd>J</kbd> Punchable |
+                    <kbd>K</kbd> NOT punchable |
+                    <kbd>L</kbd> VERY NOT punchable |
+                    <kbd>S</kbd> Skip |
+                    <kbd>F</kbd> Flag |
+                    <kbd>A</kbd> Undo
                 </div>
             </form>
 
@@ -80,39 +92,116 @@
     </div>
 
     <script>
+        let labelTimer = null; // Variable to hold the timer ID
+        const TIMER_DURATION = 1500; // 1.5 seconds
+
+        // Function to clear the existing timer (if any)
+        function clearTimer() {
+            if (labelTimer) {
+                clearTimeout(labelTimer);
+                labelTimer = null;
+                // console.log("Timer cleared."); // Optional: for debugging
+            }
+        }
+
+        // Function to start the timer
+        function startTimer() {
+            clearTimer(); // Clear any previous timer before starting a new one
+            // console.log("Starting timer..."); // Optional: for debugging
+            labelTimer = setTimeout(() => {
+                // console.log("Timer expired! Submitting 'skip'."); // Optional: for debugging
+                // Automatically skip if the timer runs out
+                // This aims to capture the visceral, knee-jerk reaction,
+                // not a judgment the user might talk themselves into.
+                submitLabel('skip');
+            }, TIMER_DURATION);
+        }
+
+        // Function to submit a label or action (skip, flag)
         function submitLabel(labelValue) {
-            // Only proceed if the form exists (i.e., not in 'done' state)
+            clearTimer(); // Stop the timer as soon as the user acts
             const form = document.getElementById('label-form');
             if (form) {
                 document.getElementById('label-input').value = labelValue;
+                form.action = "{{ url_for('index') }}"; // Ensure form posts to the main index route
                 form.submit();
             }
         }
 
+        // Function to handle the Undo action
+        function submitUndo() {
+            clearTimer(); // Stop the timer if user hits undo
+            // We'll make a POST request to a dedicated /undo endpoint
+            // This keeps the main form logic cleaner
+            fetch("{{ url_for('undo') }}", { // Assumes an '/undo' route exists in Flask
+                method: 'POST',
+                headers: {
+                    // If using CSRF protection, add headers here
+                    'Content-Type': 'application/json' // Or other if needed
+                },
+                // body: JSON.stringify({}) // Send data if needed, e.g., last filename (though backend should track this)
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Reload the page to show the previous state or next image
+                    window.location.reload();
+                } else {
+                    // Handle errors - maybe flash a message?
+                    console.error('Undo failed:', response.statusText);
+                    // Optionally, display an error to the user without reloading
+                    alert('Undo operation failed. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error during undo fetch:', error);
+                alert('An error occurred while trying to undo.');
+            });
+        }
+
         // Keyboard shortcuts
         document.addEventListener('keydown', function(event) {
-            // Ensure we don't trigger shortcuts if user is typing in an input field
-            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+            // Ignore shortcuts if focus is on an input element
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
                 return;
             }
 
-            // Check if the image and form exist (i.e., not in 'done' state)
-            if (!document.getElementById('labeling-image') || !document.getElementById('label-form')) {
+            // Check if the image and form exist (i.e., not in 'done' or error state)
+            const form = document.getElementById('label-form');
+            if (!form || !document.getElementById('labeling-image')) {
                 return;
             }
 
             switch(event.key.toUpperCase()) {
                 case 'H':
-                    submitLabel('annoying');
+                    submitLabel('very_punchable');
+                    break;
+                case 'J':
+                    submitLabel('punchable');
+                    break;
+                case 'K':
+                    submitLabel('not_punchable');
                     break;
                 case 'L':
-                    submitLabel('not_annoying');
+                    submitLabel('very_not_punchable');
                     break;
                 case 'S':
                     submitLabel('skip');
                     break;
+                case 'F':
+                    submitLabel('flag');
+                    break;
+                case 'A':
+                    submitUndo();
+                    break;
             }
         });
+
+        // --- Initialization ---
+        // Start the timer only if there is an image currently displayed
+        if (document.getElementById('labeling-image')) {
+            startTimer();
+        }
+
     </script>
 </body>
 </html>
