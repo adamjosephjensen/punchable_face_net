@@ -222,6 +222,6 @@ if __name__ == '__main__':
     # Note: For development, debug=True is helpful.
     # For production or sharing, set debug=False.
     # host='0.0.0.0' makes it accessible on your network
-    print(f"Serving images from: {app.static_folder}")
+    print(f"Serving images from: {CELEBA_IMAGE_DIR}")
     print(f"Access the labeler at: http://127.0.0.1:5000 or http://<your-ip>:5000")
     app.run(debug=True, host='0.0.0.0')

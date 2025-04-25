@@ -12,7 +12,7 @@ OUTPUT_FILE = os.path.join(OUTPUT_DIR, OUTPUT_FILENAME)
 
 TARGET_ATTRIBUTE = "Male"
 TARGET_VALUE = "1" # CelebA uses '1' for present, '-1' for absent
-DEFAULT_NUM_IMAGES = 1000
+DEFAULT_NUM_IMAGES = 20000
 # --- End Configuration ---
 
 def find_attribute_column(header_line):
