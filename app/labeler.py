@@ -314,6 +314,51 @@ def index():
                            is_done=is_done)
 
 
+@app.route('/undo', methods=['POST'])
+def undo():
+    """Reverts the last label, skip, or flag action."""
+    global last_action_info # Declare intent to read and modify global variable
+
+    if last_action_info is None:
+        flash("Nothing to undo.", "warning")
+        # Return an error status that the JS fetch can check
+        return {"status": "error", "message": "Nothing to undo"}, 400
+
+    action = last_action_info.get('action')
+    filename = last_action_info.get('filename')
+
+    if not action or not filename:
+        flash("Error: Invalid undo state.", "error")
+        last_action_info = None # Clear invalid state
+        return {"status": "error", "message": "Invalid undo state"}, 500
+
+    success = False
+    if action in LABEL_MAP:
+        print(f"Undoing label for {filename}")
+        success = remove_last_line_matching(LABELS_FILE, filename, is_csv=True)
+    elif action == 'skip':
+        print(f"Undoing skip for {filename}")
+        success = remove_last_line_matching(SKIPPED_FILE, filename, is_csv=False)
+    elif action == 'flag':
+        print(f"Undoing flag for {filename}")
+        success = remove_last_line_matching(FLAGGED_FILE, filename, is_csv=False)
+    else:
+        flash(f"Error: Unknown action '{action}' in undo state.", "error")
+        last_action_info = None # Clear invalid state
+        return {"status": "error", "message": "Unknown action"}, 500
+
+    if success:
+        flash(f"Successfully undone '{action}' for {filename}.", "success")
+        last_action_info = None # Clear undo state after successful undo
+        return {"status": "success"}, 200
+    else:
+        # The removal function already flashed an error, but we return error status
+        print(f"Failed to undo {action} for {filename} (file modification failed).")
+        # Keep last_action_info so user might retry? Or clear it? Let's clear it.
+        last_action_info = None
+        return {"status": "error", "message": "File update failed during undo"}, 500
+
+
 @app.route('/images/<filename>')
 def serve_celeba_image(filename):
     """Serves images directly from the CelebA image directory."""
@@ -350,8 +395,8 @@ app.static_url_path = '/static'
 
 
 if __name__ == '__main__':
-    # Make sure labels file exists with header before starting
-    get_labeled_images()
+    # Ensure all necessary data files (labels, skipped, flagged) are checked/created at startup
+    get_processed_images()
     # Note: For development, debug=True is helpful.
     # For production or sharing, set debug=False.
     # host='0.0.0.0' makes it accessible on your network
