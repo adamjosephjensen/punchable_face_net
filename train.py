@@ -90,8 +90,10 @@ def train_model():
 
     # Replace the final fully connected layer
     num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 2) # 2 output classes: 0 (not annoying), 1 (annoying)
-    print(f"Replaced final layer. Output classes: 2")
+    # Change output classes from 2 to 4
+    num_classes = 4
+    model.fc = nn.Linear(num_ftrs, num_classes)
+    print(f"Replaced final layer. Output classes: {num_classes}")
 
     model = model.to(device)
 
