@@ -91,7 +91,7 @@ if __name__ == '__main__':
     # Define some basic transforms for testing
     from torchvision import transforms
     test_transform = transforms.Compose([
-        transforms.Resize((64, 64)), # Smaller resize for quick testing
+        transforms.Resize((224, 224)), # Smaller resize for quick testing
         transforms.ToTensor()
     ])
     # --- End Configuration ---
