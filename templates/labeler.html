@@ -73,8 +73,7 @@
                         <hr style="margin: 10px 0;"> <!-- Optional visual separator -->
                         <button type="button" onclick="submitLabel('skip')">Skip (S)</button>
                         <button type="button" onclick="submitLabel('flag')">Flag (F)</button>
-                        {# Add Pause/Resume button #}
-                        <button type="button" onclick="togglePause()" id="pause-resume-button">Pause (Space)</button>
+                        {# Pause button removed #}
                         <button type="button" onclick="submitUndo()">Undo (A)</button> <!-- Calls new JS function -->
                     {% endif %}
                 </div>
@@ -88,7 +87,7 @@
                     {% if mode == 'label' %}
                         | <kbd>S</kbd> Skip |
                         <kbd>F</kbd> Flag |
-                        <kbd>Space</kbd> Pause/Resume | {# Add Pause shortcut hint #}
+                        {# Pause shortcut removed #}
                         <kbd>A</kbd> Undo
                     {% endif %}
                 </div>
@@ -103,57 +102,11 @@
     </div>
 
     <script>
-        let labelTimer = null; // Variable to hold the timer ID
-        const TIMER_DURATION = 3000; // 3.0 seconds
-        const INPUT_BLOCK_DURATION = 300; // 0.3 seconds
-        let inputBlocked = true; // Start with input blocked
-        let isPaused = false; // State variable for pause functionality
-
-        // Function to clear the existing timer (if any)
-        function clearTimer() {
-            if (labelTimer) {
-                clearTimeout(labelTimer);
-                labelTimer = null;
-                // console.log("Timer cleared."); // Optional: for debugging
-            }
-        }
-
-        // Function to start the timer and manage input blocking
-        function startTimer() {
-            clearTimer(); // Clear any previous timer before starting a new one
-            inputBlocked = true; // Block input when new image/timer starts
-            // console.log("Starting timer... Input BLOCKED."); // Optional: for debugging
-
-            // Set timer to automatically skip
-            labelTimer = setTimeout(() => {
-                // console.log("Timer expired! Submitting 'skip'."); // Optional: for debugging
-                // Automatically skip if the timer runs out
-                // This aims to capture the visceral, knee-jerk reaction,
-                // not a judgment the user might talk themselves into.
-                if (!inputBlocked) { // Only auto-skip if input wasn't blocked (sanity check)
-                   submitLabel('skip');
-                } else {
-                   // This case should ideally not happen if block duration < timer duration
-                   console.log("Timer expired but input was still blocked? Skipping anyway.");
-                   submitLabel('skip');
-                }
-            }, TIMER_DURATION);
-
-            // Set timer to unblock input after a short delay
-            setTimeout(() => {
-                inputBlocked = false;
-                // console.log("Input UNBLOCKED."); // Optional: for debugging
-            }, INPUT_BLOCK_DURATION);
-        }
+        // Timer, input blocking, and pause variables/functions removed
 
         // Function to submit a label or action (skip, flag)
         function submitLabel(labelValue) {
-            // Ignore if paused OR if input is blocked
-            if (isPaused || inputBlocked) {
-                // console.log(`SubmitLabel ignored: Paused=${isPaused}, InputBlocked=${inputBlocked}`); // Optional debug
-                return;
-            }
-            clearTimer(); // Stop the timer as soon as the user acts
+            // Ignore checks for pause/input block removed
             const form = document.getElementById('label-form');
             if (form) {
                 document.getElementById('label-input').value = labelValue;
@@ -164,12 +117,8 @@
 
         // Function to handle the Undo action
         function submitUndo() {
-             // Ignore if paused OR if input is blocked
-             if (isPaused || inputBlocked) {
-                 // console.log(`SubmitUndo ignored: Paused=${isPaused}, InputBlocked=${inputBlocked}`); // Optional debug
-                return;
-            }
-            clearTimer(); // Stop the timer if user hits undo
+             // Ignore checks for pause/input block removed
+            // Timer clearing removed
             // We'll make a POST request to a dedicated /undo endpoint
             // This keeps the main form logic cleaner
             fetch("{{ url_for('undo') }}", { // Assumes an '/undo' route exists in Flask
@@ -197,43 +146,13 @@
             });
         }
 
-        // Function to toggle Pause/Resume state
-        function togglePause() {
-            // Only allow pausing if in label mode and an image is shown
-            {% if mode == 'label' %}
-                if (!document.getElementById('labeling-image')) {
-                    return; // Don't allow pause if no image is displayed
-                }
-
-                isPaused = !isPaused; // Toggle the paused state
-                const pauseButton = document.getElementById('pause-resume-button');
-
-                if (isPaused) {
-                    clearTimer(); // Stop the auto-skip timer
-                    inputBlocked = true; // Ensure input remains blocked while paused
-                    if (pauseButton) pauseButton.textContent = "Resume (Space)";
-                    console.log("Labeling Paused. Input blocked."); // Optional debug
-                    // Optionally add a visual indicator like dimming the image or showing text
-                    // document.getElementById('labeling-image').style.opacity = '0.5';
-                } else {
-                    if (pauseButton) pauseButton.textContent = "Pause (Space)";
-                    console.log("Labeling Resumed."); // Optional debug
-                    // Remove visual indicator if added
-                    // document.getElementById('labeling-image').style.opacity = '1';
-                    // Restart the timer and input blocking sequence
-                    startTimer();
-                }
-            {% endif %}
-        }
+        // Pause function (togglePause) removed
 
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(event) {
-            // Ignore if paused OR if input is blocked (e.g., during initial delay)
-            if (isPaused || inputBlocked) {
-                 // console.log(`Keydown ignored: Paused=${isPaused}, InputBlocked=${inputBlocked}`); // Optional debug
-                return;
-            }
+            // Ignore checks for pause/input block removed
+
             // Ignore shortcuts if focus is on an input element
             if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) {
                 return;
@@ -267,25 +186,12 @@
                 case 'A':
                     submitUndo();
                     break;
-                case ' ': // Change Pause/Resume shortcut to Spacebar
-                    // Prevent default spacebar action (scrolling) if needed
-                    event.preventDefault();
-                    togglePause();
-                    break;
+                // Case for Spacebar (pause) removed
             }
         });
 
         // --- Initialization ---
-        // Start the timer and input blocking only in 'label' mode and if an image is displayed
-        {% if mode == 'label' %}
-            if (document.getElementById('labeling-image')) {
-                startTimer(); // This function now handles both timer and input blocking
-            }
-        {% else %}
-            // In 'rerate' mode, ensure input is immediately unblocked if the logic was somehow included
-            inputBlocked = false;
-            // console.log("Re-rate mode: Input UNBLOCKED immediately, timer disabled."); // Optional debug
-        {% endif %}
+        // Timer and input blocking initialization removed
 
     </script>
 </body>
