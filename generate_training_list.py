@@ -12,6 +12,8 @@ OUTPUT_FILE = os.path.join(OUTPUT_DIR, OUTPUT_FILENAME)
 
 TARGET_ATTRIBUTE = "Male"
 TARGET_VALUE = "1" # CelebA uses '1' for present, '-1' for absent
+EXCLUDE_ATTRIBUTE = "Young" # Attribute to exclude
+EXCLUDE_VALUE = "1"         # Value indicating presence of the excluded attribute
 DEFAULT_NUM_IMAGES = 20000
 # --- End Configuration ---
 
@@ -42,8 +44,9 @@ def generate_list(num_images):
             f.readline()
             # Read header line (line 2)
             header = f.readline().strip()
-            target_column_index = find_attribute_column(header)
+            target_column_index, exclude_column_index = find_attribute_columns(header)
             print(f"Found '{TARGET_ATTRIBUTE}' at column index {target_column_index}.")
+            print(f"Found '{EXCLUDE_ATTRIBUTE}' at column index {exclude_column_index}.")
 
             # Read image attribute lines
             line_num = 2 # Start counting after headers
@@ -56,12 +59,15 @@ def generate_list(num_images):
                 filename = parts[0]
                 attributes = parts[1:] # Attributes start from the second element
 
-                if len(attributes) <= target_column_index:
-                     print(f"Warning: Line {line_num} ('{filename}') has fewer columns than expected. Skipping.")
+                if len(attributes) <= target_column_index or len(attributes) <= exclude_column_index:
+                     print(f"Warning: Line {line_num} ('{filename}') has fewer columns than expected (needs at least {max(target_column_index, exclude_column_index)+1}). Skipping.")
                      continue
 
-                # Check if the target attribute matches the target value
-                if attributes[target_column_index] == TARGET_VALUE:
+                # Check conditions: target attribute must match, exclude attribute must NOT match
+                target_match = (attributes[target_column_index] == TARGET_VALUE)
+                exclude_match = (attributes[exclude_column_index] == EXCLUDE_VALUE)
+
+                if target_match and not exclude_match:
                     selected_filenames.append(filename)
 
                 # Stop if we have enough filenames
@@ -102,7 +108,7 @@ def generate_list(num_images):
         sys.exit(1)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=f"Generate a list of CelebA image filenames based on the '{TARGET_ATTRIBUTE}' attribute.")
+    parser = argparse.ArgumentParser(description=f"Generate a list of CelebA image filenames based on '{TARGET_ATTRIBUTE}' attribute, excluding '{EXCLUDE_ATTRIBUTE}'.")
     parser.add_argument(
         '-n', '--num_images',
         type=int,
