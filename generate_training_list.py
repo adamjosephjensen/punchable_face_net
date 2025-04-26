@@ -17,20 +17,33 @@ EXCLUDE_VALUE = "1"         # Value indicating presence of the excluded attribut
 DEFAULT_NUM_IMAGES = 20000
 # --- End Configuration ---
 
-def find_attribute_column(header_line):
-    """Finds the column index for the target attribute."""
+def find_attribute_columns(header_line):
+    """Finds the column indices for the target and exclude attributes."""
     attributes = header_line.split()
+    target_idx = -1
+    exclude_idx = -1
+
     try:
-        return attributes.index(TARGET_ATTRIBUTE)
+        target_idx = attributes.index(TARGET_ATTRIBUTE)
     except ValueError:
         print(f"Error: Target attribute '{TARGET_ATTRIBUTE}' not found in header.")
         print(f"Available attributes: {attributes}")
         sys.exit(1)
 
+    try:
+        exclude_idx = attributes.index(EXCLUDE_ATTRIBUTE)
+    except ValueError:
+        print(f"Error: Exclude attribute '{EXCLUDE_ATTRIBUTE}' not found in header.")
+        print(f"Available attributes: {attributes}")
+        sys.exit(1) # Exit if the exclude attribute isn't found either
+
+    return target_idx, exclude_idx
+
 def generate_list(num_images):
-    """Reads the attribute file and generates the list of filenames."""
+    """Reads the attribute file and generates the list of filenames, excluding specific attributes."""
     print(f"Reading attributes from: {CELEBA_ATTRIBUTE_FILE}")
-    print(f"Looking for attribute '{TARGET_ATTRIBUTE}' with value '{TARGET_VALUE}'.")
+    print(f"Looking for attribute '{TARGET_ATTRIBUTE}' = '{TARGET_VALUE}'")
+    print(f"Excluding attribute '{EXCLUDE_ATTRIBUTE}' = '{EXCLUDE_VALUE}'.")
     print(f"Target number of images: {num_images}")
 
     if not os.path.exists(CELEBA_ATTRIBUTE_FILE):
