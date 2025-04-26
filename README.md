@@ -1,6 +1,6 @@
 # Punchable Face Net - Image Labeler
 
-This tool provides a web interface to label images based on a subjective "punchability" criterion using a 4-point scale. It's designed to work with the CelebA dataset and includes features like timed labeling, skipping, flagging, and undo.
+This tool provides a web interface to label images based on a subjective `punchability` criterion using a 4-point scale. It's designed to work with the CelebA dataset and includes features like timed labeling, skipping, flagging, and undo.
 
 ## Prerequisites
 
@@ -20,14 +20,14 @@ This tool provides a web interface to label images based on a subjective "puncha
 
 ### 1. Generate the Training Image List
 
-This step selects a subset of images based on specific attributes (currently configured for "Male" = "1") and creates a list file used by the labeler.
+This step selects a subset of images based on specific attributes (currently configured for `Male` = `1`) and creates a list file used by the labeler.
 
 *   **Script:** `generate_training_list.py`
 *   **Configuration:**
     *   `CELEBA_ATTRIBUTE_FILE`: Path to your `list_attr_celeba.txt`.
     *   `OUTPUT_FILE`: `./data/training_imgs.txt` (where the list will be saved).
-    *   `TARGET_ATTRIBUTE`: The CelebA attribute to filter by (e.g., "Male").
-    *   `TARGET_VALUE`: The value for the target attribute (e.g., "1").
+    *   `TARGET_ATTRIBUTE`: The CelebA attribute to filter by (e.g., `Male`).
+    *   `TARGET_VALUE`: The value for the target attribute (e.g., `1`).
     *   `DEFAULT_NUM_IMAGES`: Default number of images to select.
 *   **Run:** Execute the script from the project root directory. You can optionally specify the number of images:
     ```bash
@@ -56,11 +56,11 @@ This starts a local web server to display images and record your labels.
 *   **Labeling:**
     *   **Timer:** You have a limited time to label each image after it appears. If the timer expires, the image is automatically skipped. This encourages capturing a quick, visceral reaction rather than prolonged judgment.
     *   **Labels:** There are four labels:
-        * "VERY punchable": meaning I experience a marked urge to hit them in the face.
-        * "Punchable": meaning a less distinct urge to hit the person in the face.
-        * "NOT punchable": meaning no particular desire to punch this person or see them get punched.
-        * "VERY NOT punchable": meaning a marked desire for the person not to be punched.
-    *   **Buttons:** Click one of the four label buttons , "Skip", or "Flag".
+        * `VERY punchable`: meaning I experience a marked urge to hit them in the face.
+        * `Punchable`: meaning a less distinct urge to hit the person in the face, perhaps a small desire for the person to be punched, or an impersonal desire for someone else to punch them.
+        * `NOT punchable`: meaning no particular desire to punch this person or see them get punched.
+        * `VERY NOT punchable`: meaning a marked desire for the person not to be punched; perhaps a felt warmth towards the person or a desire to protect them from harm.
+    *   **Buttons:** Click one of the four label buttons , `Skip`, or `Flag`.
     *   **Keyboard Shortcuts:**
         *   <kbd>H</kbd>: VERY punchable
         *   <kbd>J</kbd>: Punchable
