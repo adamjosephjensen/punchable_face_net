@@ -101,8 +101,9 @@ def train_model():
     # --- Loss & Optimizer ---
     criterion = nn.CrossEntropyLoss() # Use Cross Entropy for classification
     # Only optimize the parameters of the new final layer
+    # Ensure no weight_decay argument is present for baseline
     optimizer = optim.Adam(model.fc.parameters(), lr=args.lr)
-    print(f"Optimizer: Adam, LR: {args.lr}. Loss: CrossEntropyLoss. Optimizing only the final layer.")
+    print(f"Optimizer: Adam, LR: {args.lr}. Loss: CrossEntropyLoss. No weight decay. Optimizing only the final layer.") # Updated print statement
 
     # --- TensorBoard Setup ---
     print(f"Setting up TensorBoard logging to: {args.log_dir}")
