@@ -76,8 +76,8 @@ class CelebADataset(Dataset):
                 print(f"Error applying transforms to image {img_path}: {e}")
                 raise e
 
-        # Convert label to tensor (float tensor for regression loss like MSE)
-        label_tensor = torch.tensor(label, dtype=torch.float)
+        # Convert label to tensor (long tensor for CrossEntropyLoss)
+        label_tensor = torch.tensor(label, dtype=torch.long)
 
         return image, label_tensor
 
