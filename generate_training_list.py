@@ -14,7 +14,7 @@ TARGET_ATTRIBUTE = "Male"
 TARGET_VALUE = "1" # CelebA uses '1' for present, '-1' for absent
 EXCLUDE_ATTRIBUTE = "Young" # Attribute to exclude
 EXCLUDE_VALUE = "1"         # Value indicating presence of the excluded attribute
-DEFAULT_NUM_IMAGES = 20000
+DEFAULT_NUM_IMAGES = 1000
 # --- End Configuration ---
 
 def find_attribute_columns(header_line):
